@@ -24,3 +24,8 @@ api_keys:
   google_api_key: "" # e.g. "xxxxxxxxxxxxx"
   openai_api_key: ""
   anthropic_api_key: ""
+  doubao_api_key: "" # ByteDance Doubao (豆包) API key from Volcengine Ark platform
+
+# Doubao (豆包) Configuration
+doubao:
+  base_url: "https://ark.cn-beijing.volces.com/api/v3" # Volcengine Ark API endpoint

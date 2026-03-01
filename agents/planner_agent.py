@@ -100,15 +100,13 @@ class PlannerAgent(BaseAgent):
 
         content_list.append({"type": "text", "text": user_prompt})
 
-        response_list = await generation_utils.call_gemini_with_retry_async(
+        response_list = await generation_utils.call_text_model_with_retry_async(
             model_name=self.model_name,
             contents=content_list,
-            config=types.GenerateContentConfig(
-                system_instruction=self.system_prompt,
-                temperature=self.exp_config.temperature,
-                candidate_count=1,
-                max_output_tokens=50000,
-            ),
+            system_prompt=self.system_prompt,
+            temperature=self.exp_config.temperature,
+            candidate_num=1,
+            max_output_tokens=50000,
             max_attempts=5,
             retry_delay=5,
         )

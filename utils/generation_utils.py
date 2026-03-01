@@ -75,6 +75,15 @@ else:
     print("Warning: Could not initialize OpenAI Client. Missing credentials.")
     openai_client = None
 
+doubao_api_key = get_config_val("api_keys", "doubao_api_key", "DOUBAO_API_KEY", "")
+doubao_base_url = get_config_val("doubao", "base_url", "DOUBAO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+if doubao_api_key:
+    doubao_client = AsyncOpenAI(api_key=doubao_api_key, base_url=doubao_base_url)
+    print("Initialized Doubao Client with API Key")
+else:
+    print("Warning: Could not initialize Doubao Client. Missing credentials.")
+    doubao_client = None
+
 
 
 def _convert_to_gemini_parts(contents: List[Dict[str, Any]]) -> List[types.Part]:
@@ -402,6 +411,94 @@ async def call_openai_with_retry_async(
     return response_text_list
 
 
+async def call_doubao_with_retry_async(
+    model_name, contents, config, max_attempts=5, retry_delay=30, error_context=""
+):
+    """
+    ASYNC: Call Doubao (豆包) API with asynchronous retry logic.
+    Doubao uses an OpenAI-compatible API via the Volcengine Ark platform.
+    """
+    if doubao_client is None:
+        raise RuntimeError(
+            "Doubao client was not initialized: missing Doubao API key. "
+            "Please set DOUBAO_API_KEY in environment, or configure api_keys.doubao_api_key in configs/model_config.yaml."
+        )
+
+    system_prompt = config["system_prompt"]
+    temperature = config["temperature"]
+    candidate_num = config["candidate_num"]
+    max_output_tokens = config.get("max_output_tokens", config.get("max_completion_tokens", 4096))
+    response_text_list = []
+
+    # --- Preparation Phase ---
+    current_contents = contents
+
+    # --- Validation and Remediation Phase ---
+    is_input_valid = False
+    for attempt in range(max_attempts):
+        try:
+            doubao_contents = _convert_to_openai_format(current_contents)
+            first_response = await doubao_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": doubao_contents}
+                ],
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+            )
+            response_text_list.append(first_response.choices[0].message.content)
+            is_input_valid = True
+            break
+
+        except Exception as e:
+            error_str = str(e).lower()
+            context_msg = f" for {error_context}" if error_context else ""
+            current_delay = min(retry_delay * (2 ** attempt), 30)
+            print(
+                f"Validation attempt {attempt + 1} failed{context_msg}: {error_str}. Retrying in {current_delay} seconds..."
+            )
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(current_delay)
+
+    # --- Sampling Phase ---
+    if not is_input_valid:
+        context_msg = f" for {error_context}" if error_context else ""
+        print(
+            f"Error: All {max_attempts} attempts failed to validate the input{context_msg}. Returning errors."
+        )
+        return ["Error"] * candidate_num
+
+    remaining_candidates = candidate_num - 1
+    if remaining_candidates > 0:
+        print(
+            f"Input validated. Now generating remaining {remaining_candidates} candidates..."
+        )
+        valid_doubao_contents = _convert_to_openai_format(current_contents)
+        tasks = [
+            doubao_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": valid_doubao_contents}
+                ],
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+            )
+            for _ in range(remaining_candidates)
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for res in results:
+            if isinstance(res, Exception):
+                print(f"Error generating a subsequent candidate: {res}")
+                response_text_list.append("Error")
+            else:
+                response_text_list.append(res.choices[0].message.content)
+
+    return response_text_list
+
+
 async def call_openai_image_generation_with_retry_async(
     model_name, prompt, config, max_attempts=5, retry_delay=30, error_context=""
 ):
@@ -454,3 +551,71 @@ async def call_openai_image_generation_with_retry_async(
                 return ["Error"]
 
     return ["Error"]
+
+
+async def call_text_model_with_retry_async(
+    model_name, contents, system_prompt, temperature, candidate_num=1,
+    max_output_tokens=50000, max_attempts=5, retry_delay=5, error_context=""
+):
+    """
+    Unified text generation dispatcher that routes to the correct provider
+    based on model_name. Supports Gemini, Claude, OpenAI, and Doubao.
+    """
+    if "gemini" in model_name:
+        return await call_gemini_with_retry_async(
+            model_name=model_name,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=temperature,
+                candidate_count=candidate_num,
+                max_output_tokens=max_output_tokens,
+            ),
+            max_attempts=max_attempts,
+            retry_delay=retry_delay,
+            error_context=error_context,
+        )
+    elif "doubao" in model_name:
+        return await call_doubao_with_retry_async(
+            model_name=model_name,
+            contents=contents,
+            config={
+                "system_prompt": system_prompt,
+                "temperature": temperature,
+                "candidate_num": candidate_num,
+                "max_output_tokens": max_output_tokens,
+            },
+            max_attempts=max_attempts,
+            retry_delay=retry_delay,
+            error_context=error_context,
+        )
+    elif "claude" in model_name:
+        return await call_claude_with_retry_async(
+            model_name=model_name,
+            contents=contents,
+            config={
+                "system_prompt": system_prompt,
+                "temperature": temperature,
+                "candidate_num": candidate_num,
+                "max_output_tokens": max_output_tokens,
+            },
+            max_attempts=max_attempts,
+            retry_delay=retry_delay,
+            error_context=error_context,
+        )
+    elif "gpt" in model_name or "o1" in model_name or "o3" in model_name or "o4" in model_name:
+        return await call_openai_with_retry_async(
+            model_name=model_name,
+            contents=contents,
+            config={
+                "system_prompt": system_prompt,
+                "temperature": temperature,
+                "candidate_num": candidate_num,
+                "max_completion_tokens": max_output_tokens,
+            },
+            max_attempts=max_attempts,
+            retry_delay=retry_delay,
+            error_context=error_context,
+        )
+    else:
+        raise ValueError(f"Unsupported text model: {model_name}. Model name must contain 'gemini', 'doubao', 'claude', or 'gpt'.")
