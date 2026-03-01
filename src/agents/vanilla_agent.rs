@@ -230,9 +230,7 @@ impl Agent for VanillaAgent {
                         format!("vanilla_{}_code", cfg.task_name),
                         Value::String(raw_code.clone()),
                     );
-                    println!(
-                        "[Vanilla] Generated plot code (execution requires Python runtime)"
-                    );
+                    println!("[Vanilla] Generated plot code (execution requires Python runtime)");
                 }
             }
         }

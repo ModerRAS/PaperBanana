@@ -148,22 +148,36 @@ impl Agent for PolishAgent {
         let gt_image_b64 = match fs::read(&gt_image_path) {
             Ok(bytes) => base64::engine::general_purpose::STANDARD.encode(&bytes),
             Err(e) => {
-                println!("[Polish] Failed to load GT image from {}: {}", gt_image_path.display(), e);
+                println!(
+                    "[Polish] Failed to load GT image from {}: {}",
+                    gt_image_path.display(),
+                    e
+                );
                 return Ok(data);
             }
         };
 
-        let style_guide_path = exp.work_dir.join("style_guides").join(&self.style_guide_filename);
+        let style_guide_path = exp
+            .work_dir
+            .join("style_guides")
+            .join(&self.style_guide_filename);
         let style_guide = match fs::read_to_string(&style_guide_path) {
             Ok(s) => s,
             Err(e) => {
-                println!("[Polish] Error loading style guide from {}: {}", style_guide_path.display(), e);
+                println!(
+                    "[Polish] Error loading style guide from {}: {}",
+                    style_guide_path.display(),
+                    e
+                );
                 return Ok(data);
             }
         };
 
         // Step 1: Generate suggestions
-        println!("[Polish] Step 1: Generating suggestions for {} ...", self.task_name);
+        println!(
+            "[Polish] Step 1: Generating suggestions for {} ...",
+            self.task_name
+        );
         let suggestions = self
             .generate_suggestions(&gt_image_b64, &style_guide, clients)
             .await?;

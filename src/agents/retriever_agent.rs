@@ -32,6 +32,7 @@ struct TaskConfig {
     target_labels: [&'static str; 2],
     candidate_labels: [&'static str; 3],
     candidate_type: &'static str,
+    #[allow(dead_code)]
     output_key: &'static str,
     instruction_suffix: &'static str,
 }
@@ -223,7 +224,10 @@ impl RetrieverAgent {
                 .get("visual_intent")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let c = item.get("content").map(|v| v.to_string()).unwrap_or_default();
+            let c = item
+                .get("content")
+                .map(|v| v.to_string())
+                .unwrap_or_default();
             user_prompt.push_str(&format!(
                 "Candidate {} {}:\n- {}: {}\n- {}: {}\n- {}: {}\n\n",
                 cfg.candidate_type,

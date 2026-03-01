@@ -85,11 +85,16 @@ impl Agent for StylistAgent {
             .unwrap_or("")
             .to_string();
 
-        let style_guide_path = exp
-            .work_dir
-            .join(format!("style_guides/neurips2025_{}_style_guide.md", cfg.task_name));
+        let style_guide_path = exp.work_dir.join(format!(
+            "style_guides/neurips2025_{}_style_guide.md",
+            cfg.task_name
+        ));
         let style_guide = fs::read_to_string(&style_guide_path).unwrap_or_else(|e| {
-            println!("Warning: Could not read style guide at {}: {}", style_guide_path.display(), e);
+            println!(
+                "Warning: Could not read style guide at {}: {}",
+                style_guide_path.display(),
+                e
+            );
             String::new()
         });
 
@@ -122,7 +127,10 @@ impl Agent for StylistAgent {
             image_base64: None,
         }];
 
-        println!("[Stylist] Refining description for {} task...", cfg.task_name);
+        println!(
+            "[Stylist] Refining description for {} task...",
+            cfg.task_name
+        );
 
         let response_list = call_text_model_with_retry_async(
             clients,

@@ -8,6 +8,10 @@ data/
 results/
 .pytest_cache/
 
+# Rust build artifacts
+target/
+Cargo.lock
+
 
 # Added by cargo
 

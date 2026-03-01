@@ -81,19 +81,13 @@ impl PaperVizProcessor {
         let mut current_best = current_best_image_key;
 
         for round_idx in 0..max_rounds {
-            data.insert(
-                "current_critic_round".to_string(),
-                json!(round_idx),
-            );
+            data.insert("current_critic_round".to_string(), json!(round_idx));
             data = self
                 .critic_agent
                 .process_with_options(data, clients, source)
                 .await?;
 
-            let critic_key = format!(
-                "target_{}_critic_suggestions{}",
-                task_name, round_idx
-            );
+            let critic_key = format!("target_{}_critic_suggestions{}", task_name, round_idx);
             let suggestions = data
                 .get(&critic_key)
                 .and_then(|v| v.as_str())
@@ -110,10 +104,7 @@ impl PaperVizProcessor {
 
             data = self.visualizer_agent.process(data, clients).await?;
 
-            let new_image_key = format!(
-                "target_{}_critic_desc{}_base64_jpg",
-                task_name, round_idx
-            );
+            let new_image_key = format!("target_{}_critic_desc{}_base64_jpg", task_name, round_idx);
             if data.contains_key(&new_image_key) {
                 current_best = new_image_key;
                 println!(
@@ -129,10 +120,7 @@ impl PaperVizProcessor {
             }
         }
 
-        data.insert(
-            "eval_image_field".to_string(),
-            json!(current_best),
-        );
+        data.insert("eval_image_field".to_string(), json!(current_best));
         Ok(data)
     }
 
@@ -179,10 +167,7 @@ impl PaperVizProcessor {
                 data = self.visualizer_agent.process(data, clients).await?;
                 data.insert(
                     "eval_image_field".to_string(),
-                    json!(format!(
-                        "target_{}_stylist_desc0_base64_jpg",
-                        task_name
-                    )),
+                    json!(format!("target_{}_stylist_desc0_base64_jpg", task_name)),
                 );
             }
 
@@ -236,10 +221,7 @@ impl PaperVizProcessor {
             }
 
             _ => {
-                return Err(anyhow::anyhow!(
-                    "Unknown experiment name: {}",
-                    exp_mode
-                ));
+                return Err(anyhow::anyhow!("Unknown experiment name: {}", exp_mode));
             }
         }
 

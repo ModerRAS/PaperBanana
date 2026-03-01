@@ -67,6 +67,7 @@ pub struct DoubaoConfig {
 
 impl ExpConfig {
     /// Create a new ExpConfig with post-initialization logic matching the Python version
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dataset_name: String,
         task_name: String,
@@ -88,16 +89,11 @@ impl ExpConfig {
                     if let Ok(config) = serde_yaml::from_str::<ModelConfigFile>(&contents) {
                         if let Some(defaults) = &config.defaults {
                             if model_name.is_empty() {
-                                model_name = defaults
-                                    .model_name
-                                    .clone()
-                                    .unwrap_or_default();
+                                model_name = defaults.model_name.clone().unwrap_or_default();
                             }
                             if image_model_name.is_empty() {
-                                image_model_name = defaults
-                                    .image_model_name
-                                    .clone()
-                                    .unwrap_or_default();
+                                image_model_name =
+                                    defaults.image_model_name.clone().unwrap_or_default();
                             }
                         }
                     }
@@ -204,7 +200,13 @@ mod tests {
     fn test_env_var_takes_precedence() {
         let config = ModelConfigFile::default();
         env::set_var("TEST_KEY_RUST", "from_env");
-        let result = get_config_val(&config, "api_keys", "test_key", "TEST_KEY_RUST", "default_val");
+        let result = get_config_val(
+            &config,
+            "api_keys",
+            "test_key",
+            "TEST_KEY_RUST",
+            "default_val",
+        );
         assert_eq!(result, "from_env");
         env::remove_var("TEST_KEY_RUST");
     }
@@ -227,13 +229,7 @@ mod tests {
     fn test_empty_default() {
         let config = ModelConfigFile::default();
         env::remove_var("NONEXISTENT_KEY_67890");
-        let result = get_config_val(
-            &config,
-            "no_section",
-            "no_key",
-            "NONEXISTENT_KEY_67890",
-            "",
-        );
+        let result = get_config_val(&config, "no_section", "no_key", "NONEXISTENT_KEY_67890", "");
         assert_eq!(result, "");
     }
 

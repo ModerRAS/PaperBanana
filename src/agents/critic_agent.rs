@@ -21,7 +21,9 @@ use std::collections::HashMap;
 
 use crate::agents::base_agent::{Agent, AgentConfig};
 use crate::config::ExpConfig;
-use crate::generation_utils::{call_text_model_with_retry_async, ApiClients, ContentItem, ImageSource};
+use crate::generation_utils::{
+    call_text_model_with_retry_async, ApiClients, ContentItem, ImageSource,
+};
 
 struct TaskConfig {
     task_name: String,
@@ -93,7 +95,10 @@ impl CriticAgent {
                     format!("target_{}_desc0", task_name),
                     format!("target_{}_desc0_base64_jpg", task_name),
                 ),
-                _ => anyhow::bail!("Invalid source '{}'. Must be 'stylist' or 'planner'.", source),
+                _ => anyhow::bail!(
+                    "Invalid source '{}'. Must be 'stylist' or 'planner'.",
+                    source
+                ),
             }
         } else {
             (
@@ -178,13 +183,20 @@ impl CriticAgent {
             content_type: "text".into(),
             text: Some(format!(
                 "Detailed Description: {}\n{}: {}\n{}: {}\nYour Output:",
-                detailed_description, cfg.context_labels[0], content_str, cfg.context_labels[1], visual_intent,
+                detailed_description,
+                cfg.context_labels[0],
+                content_str,
+                cfg.context_labels[1],
+                visual_intent,
             )),
             source: None,
             image_base64: None,
         });
 
-        println!("[Critic] Round {} critique for {} task...", round_idx, task_name);
+        println!(
+            "[Critic] Round {} critique for {} task...",
+            round_idx, task_name
+        );
 
         let response_list = call_text_model_with_retry_async(
             clients,
@@ -202,11 +214,20 @@ impl CriticAgent {
 
         let cleaned = response_list
             .first()
-            .map(|r| r.replace("```json", "").replace("```", "").trim().to_string())
+            .map(|r| {
+                r.replace("```json", "")
+                    .replace("```", "")
+                    .trim()
+                    .to_string()
+            })
             .unwrap_or_default();
 
         let eval_result: Value = serde_json::from_str(&cleaned).unwrap_or_else(|e| {
-            println!("[Critic] JSON parse error: {}. Raw: {}...", e, &cleaned[..cleaned.len().min(200)]);
+            println!(
+                "[Critic] JSON parse error: {}. Raw: {}...",
+                e,
+                &cleaned[..cleaned.len().min(200)]
+            );
             Value::Object(serde_json::Map::new())
         });
 

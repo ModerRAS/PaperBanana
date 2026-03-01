@@ -118,10 +118,9 @@ impl Agent for PlannerAgent {
                 if retrieved_ids.is_empty() {
                     vec![]
                 } else {
-                    let ref_path = exp.work_dir.join(format!(
-                        "data/PaperBananaBench/{}/ref.json",
-                        cfg.task_name
-                    ));
+                    let ref_path = exp
+                        .work_dir
+                        .join(format!("data/PaperBananaBench/{}/ref.json", cfg.task_name));
                     let raw = fs::read_to_string(&ref_path).unwrap_or_else(|_| "[]".into());
                     let pool: Vec<Value> = serde_json::from_str(&raw).unwrap_or_default();
                     let id_map: HashMap<String, &Value> = pool
@@ -155,7 +154,9 @@ impl Agent for PlannerAgent {
             user_prompt.push_str(&format!(
                 "{}: {}\nReference {}: ",
                 cfg.visual_intent_label,
-                item.get("visual_intent").and_then(|v| v.as_str()).unwrap_or(""),
+                item.get("visual_intent")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(""),
                 capitalize(&cfg.task_name),
             ));
 
@@ -207,7 +208,10 @@ impl Agent for PlannerAgent {
             image_base64: None,
         });
 
-        println!("[Planner] Generating description for {} task...", cfg.task_name);
+        println!(
+            "[Planner] Generating description for {} task...",
+            cfg.task_name
+        );
 
         let response_list = call_text_model_with_retry_async(
             clients,

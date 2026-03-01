@@ -86,8 +86,7 @@ mod tests {
 
     #[test]
     fn test_rgba_png_converts_correctly() {
-        let img: RgbaImage =
-            ImageBuffer::from_fn(10, 10, |_, _| Rgba([255, 0, 0, 128]));
+        let img: RgbaImage = ImageBuffer::from_fn(10, 10, |_, _| Rgba([255, 0, 0, 128]));
         let mut buf = Cursor::new(Vec::new());
         img.write_to(&mut buf, ImageFormat::Png).unwrap();
         let png_b64 = BASE64.encode(buf.into_inner());

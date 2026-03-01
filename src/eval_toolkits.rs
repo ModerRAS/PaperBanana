@@ -15,8 +15,8 @@
 //! Evaluation toolkits for PaperVizAgent
 
 use anyhow::Result;
-use regex::Regex;
 use base64::Engine;
+use regex::Regex;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::Path;
@@ -25,6 +25,7 @@ use crate::generation_utils::ApiClients;
 use crate::prompts::{diagram_eval_prompts, plot_eval_prompts};
 
 /// Get the evaluation prompt for a given task and dimension
+#[allow(dead_code)]
 fn get_eval_prompt(task_name: &str, eval_dim: &str) -> &'static str {
     match (task_name, eval_dim) {
         ("diagram", "faithfulness") => {
@@ -56,6 +57,7 @@ fn get_eval_prompt(task_name: &str, eval_dim: &str) -> &'static str {
 }
 
 /// Task configuration for evaluation
+#[allow(dead_code)]
 struct TaskConfig {
     visual_intent_label: &'static str,
     raw_content_label: &'static str,
@@ -63,6 +65,7 @@ struct TaskConfig {
     model_label: &'static str,
 }
 
+#[allow(dead_code)]
 fn get_task_config(task_name: &str) -> TaskConfig {
     match task_name {
         "plot" => TaskConfig {
@@ -93,7 +96,7 @@ pub fn try_regex_extract_winner(text: &str) -> Option<String> {
         if let Ok(re) = Regex::new(pattern) {
             if let Some(captures) = re.captures(text) {
                 if let Some(value) = captures.get(1) {
-                    let val = value.as_str().trim().trim_end_matches(|c| c == '*' || c == '"').trim();
+                    let val = value.as_str().trim().trim_end_matches(['*', '"']).trim();
                     if !val.is_empty() {
                         return Some(val.to_string());
                     }
@@ -144,10 +147,7 @@ pub async fn get_score_for_image_referenced(
     work_dir: &Path,
     _clients: &ApiClients,
 ) -> Result<()> {
-    let _raw_content = sample_data
-        .get("content")
-        .cloned()
-        .unwrap_or(json!(""));
+    let _raw_content = sample_data.get("content").cloned().unwrap_or(json!(""));
     let _visual_intent = sample_data
         .get("visual_intent")
         .and_then(|v| v.as_str())
@@ -166,10 +166,7 @@ pub async fn get_score_for_image_referenced(
                 "aesthetics",
                 "overall",
             ] {
-                sample_data.insert(
-                    format!("{}_outcome", dim),
-                    json!("N/A - No GT"),
-                );
+                sample_data.insert(format!("{}_outcome", dim), json!("N/A - No GT"));
             }
             return Ok(());
         }
@@ -182,8 +179,7 @@ pub async fn get_score_for_image_referenced(
         .join(&path_to_gt_image_rel);
 
     let gt_image_bytes = std::fs::read(&gt_image_path)?;
-    let _gt_image_base64 =
-        base64::engine::general_purpose::STANDARD.encode(&gt_image_bytes);
+    let _gt_image_base64 = base64::engine::general_purpose::STANDARD.encode(&gt_image_bytes);
 
     let eval_image_field = sample_data
         .get("eval_image_field")
@@ -306,26 +302,14 @@ mod tests {
 
     #[test]
     fn test_determine_tier_outcome_model_plus_neutral() {
-        assert_eq!(
-            determine_tier_outcome("Model", "Both are good"),
-            "Model"
-        );
-        assert_eq!(
-            determine_tier_outcome("Both are bad", "Model"),
-            "Model"
-        );
+        assert_eq!(determine_tier_outcome("Model", "Both are good"), "Model");
+        assert_eq!(determine_tier_outcome("Both are bad", "Model"), "Model");
     }
 
     #[test]
     fn test_determine_tier_outcome_human_plus_neutral() {
-        assert_eq!(
-            determine_tier_outcome("Human", "Both are good"),
-            "Human"
-        );
-        assert_eq!(
-            determine_tier_outcome("Both are bad", "Human"),
-            "Human"
-        );
+        assert_eq!(determine_tier_outcome("Human", "Both are good"), "Human");
+        assert_eq!(determine_tier_outcome("Both are bad", "Human"), "Human");
     }
 
     #[test]

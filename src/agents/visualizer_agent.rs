@@ -45,9 +45,11 @@ pub struct VisualizerAgent {
 
 impl VisualizerAgent {
     pub fn new(exp_config: ExpConfig) -> Self {
-        let (system_prompt, task_config, image_model_name) =
-            if exp_config.task_name.contains("plot") {
-                (
+        let (system_prompt, task_config, image_model_name) = if exp_config
+            .task_name
+            .contains("plot")
+        {
+            (
                     PLOT_VISUALIZER_AGENT_SYSTEM_PROMPT.to_string(),
                     TaskConfig {
                         task_name: "plot".into(),
@@ -57,8 +59,8 @@ impl VisualizerAgent {
                     },
                     exp_config.model_name.clone(),
                 )
-            } else {
-                (
+        } else {
+            (
                     DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT.to_string(),
                     TaskConfig {
                         task_name: "diagram".into(),
@@ -68,7 +70,7 @@ impl VisualizerAgent {
                     },
                     exp_config.image_model_name.clone(),
                 )
-            };
+        };
 
         let model_name = if task_config.use_image_generation {
             exp_config.image_model_name.clone()
@@ -123,8 +125,11 @@ impl Agent for VisualizerAgent {
                     .unwrap_or("");
 
                 if suggestions.trim() == "No changes needed." && round_idx > 0 {
-                    let prev_key =
-                        format!("target_{}_critic_desc{}_base64_jpg", task_name, round_idx - 1);
+                    let prev_key = format!(
+                        "target_{}_critic_desc{}_base64_jpg",
+                        task_name,
+                        round_idx - 1
+                    );
                     if let Some(prev_b64) = data.get(&prev_key).cloned() {
                         data.insert(base64_key, prev_b64);
                         println!(
@@ -140,10 +145,7 @@ impl Agent for VisualizerAgent {
         }
 
         for desc_key in &desc_keys {
-            let desc_value = data
-                .get(desc_key)
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let desc_value = data.get(desc_key).and_then(|v| v.as_str()).unwrap_or("");
             let prompt_text = cfg.prompt_template.replace("{desc}", desc_value);
 
             println!("[Visualizer] Processing {} ...", desc_key);
@@ -205,7 +207,10 @@ impl Agent for VisualizerAgent {
                     )
                     .await
                 } else {
-                    println!("[Visualizer] Unsupported image model: {}", self.image_model_name);
+                    println!(
+                        "[Visualizer] Unsupported image model: {}",
+                        self.image_model_name
+                    );
                     continue;
                 }
             } else {

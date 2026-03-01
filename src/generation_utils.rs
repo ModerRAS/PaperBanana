@@ -98,10 +98,18 @@ impl ApiClients {
             .build()
             .expect("Failed to create HTTP client");
 
-        let google_api_key = Self::get_key(model_config, "api_keys", "google_api_key", "GOOGLE_API_KEY");
-        let anthropic_api_key = Self::get_key(model_config, "api_keys", "anthropic_api_key", "ANTHROPIC_API_KEY");
-        let openai_api_key = Self::get_key(model_config, "api_keys", "openai_api_key", "OPENAI_API_KEY");
-        let doubao_api_key = Self::get_key(model_config, "api_keys", "doubao_api_key", "DOUBAO_API_KEY");
+        let google_api_key =
+            Self::get_key(model_config, "api_keys", "google_api_key", "GOOGLE_API_KEY");
+        let anthropic_api_key = Self::get_key(
+            model_config,
+            "api_keys",
+            "anthropic_api_key",
+            "ANTHROPIC_API_KEY",
+        );
+        let openai_api_key =
+            Self::get_key(model_config, "api_keys", "openai_api_key", "OPENAI_API_KEY");
+        let doubao_api_key =
+            Self::get_key(model_config, "api_keys", "doubao_api_key", "DOUBAO_API_KEY");
         let doubao_base_url = config::get_config_val(
             model_config,
             "doubao",
@@ -141,7 +149,12 @@ impl ApiClients {
         }
     }
 
-    fn get_key(model_config: &ModelConfigFile, section: &str, key: &str, env_var: &str) -> Option<String> {
+    fn get_key(
+        model_config: &ModelConfigFile,
+        section: &str,
+        key: &str,
+        env_var: &str,
+    ) -> Option<String> {
         let val = config::get_config_val(model_config, section, key, env_var, "");
         if val.is_empty() {
             None
@@ -204,10 +217,7 @@ pub fn convert_to_openai_format(contents: &[ContentItem]) -> Vec<Value> {
             "image" => {
                 if let Some(source) = &item.source {
                     if source.source_type == "base64" {
-                        let media_type = source
-                            .media_type
-                            .as_deref()
-                            .unwrap_or("image/jpeg");
+                        let media_type = source.media_type.as_deref().unwrap_or("image/jpeg");
                         let data = source.data.as_deref().unwrap_or("");
                         let data_url = format!("data:{};base64,{}", media_type, data);
                         result.push(json!({
@@ -226,6 +236,7 @@ pub fn convert_to_openai_format(contents: &[ContentItem]) -> Vec<Value> {
 // ======================== API Call Functions ========================
 
 /// Call Gemini API with async retry logic
+#[allow(clippy::too_many_arguments)]
 pub async fn call_gemini_with_retry_async(
     clients: &ApiClients,
     model_name: &str,
@@ -334,7 +345,11 @@ pub async fn call_gemini_with_retry_async(
                 let current_delay = std::cmp::min(retry_delay * 2u64.pow(attempt as u32), 30);
                 eprintln!(
                     "Attempt {} for model {} failed{}: {}. Retrying in {} seconds...",
-                    attempt + 1, model_name, context_msg, e, current_delay
+                    attempt + 1,
+                    model_name,
+                    context_msg,
+                    e,
+                    current_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(current_delay)).await;
@@ -354,6 +369,7 @@ pub async fn call_gemini_with_retry_async(
 }
 
 /// Call Claude API with async retry logic
+#[allow(clippy::too_many_arguments)]
 pub async fn call_claude_with_retry_async(
     clients: &ApiClients,
     model_name: &str,
@@ -412,7 +428,9 @@ pub async fn call_claude_with_retry_async(
                 };
                 eprintln!(
                     "Validation attempt {} failed{}: empty response. Retrying in {} seconds...",
-                    attempt + 1, context_msg, retry_delay
+                    attempt + 1,
+                    context_msg,
+                    retry_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(retry_delay)).await;
@@ -426,7 +444,10 @@ pub async fn call_claude_with_retry_async(
                 };
                 eprintln!(
                     "Validation attempt {} failed{}: {}. Retrying in {} seconds...",
-                    attempt + 1, context_msg, e, retry_delay
+                    attempt + 1,
+                    context_msg,
+                    e,
+                    retry_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(retry_delay)).await;
@@ -500,6 +521,7 @@ pub async fn call_claude_with_retry_async(
 }
 
 /// Call OpenAI API with async retry logic
+#[allow(clippy::too_many_arguments)]
 pub async fn call_openai_with_retry_async(
     clients: &ApiClients,
     model_name: &str,
@@ -545,9 +567,7 @@ pub async fn call_openai_with_retry_async(
         {
             Ok(resp) => {
                 if let Ok(resp_json) = resp.json::<Value>().await {
-                    if let Some(content) =
-                        resp_json["choices"][0]["message"]["content"].as_str()
-                    {
+                    if let Some(content) = resp_json["choices"][0]["message"]["content"].as_str() {
                         response_text_list.push(content.to_string());
                         break;
                     }
@@ -559,7 +579,9 @@ pub async fn call_openai_with_retry_async(
                 };
                 eprintln!(
                     "Validation attempt {} failed{}: Retrying in {} seconds...",
-                    attempt + 1, context_msg, retry_delay
+                    attempt + 1,
+                    context_msg,
+                    retry_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(retry_delay)).await;
@@ -573,7 +595,10 @@ pub async fn call_openai_with_retry_async(
                 };
                 eprintln!(
                     "Validation attempt {} failed{}: {}. Retrying in {} seconds...",
-                    attempt + 1, context_msg, e, retry_delay
+                    attempt + 1,
+                    context_msg,
+                    e,
+                    retry_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(retry_delay)).await;
@@ -649,6 +674,7 @@ pub async fn call_openai_with_retry_async(
 }
 
 /// Call Doubao (豆包) API with async retry logic
+#[allow(clippy::too_many_arguments)]
 pub async fn call_doubao_with_retry_async(
     clients: &ApiClients,
     model_name: &str,
@@ -664,14 +690,8 @@ pub async fn call_doubao_with_retry_async(
     let api_key = match &clients.doubao_api_key {
         Some(key) => key.clone(),
         None => {
-            return Err::<Vec<String>, _>(anyhow::anyhow!(
-                "Doubao client was not initialized: missing Doubao API key. \
-                 Please set DOUBAO_API_KEY in environment, or configure api_keys.doubao_api_key in configs/model_config.yaml."
-            ))
-            .unwrap_or_else(|e| {
-                eprintln!("{}", e);
-                vec!["Error".to_string(); candidate_num]
-            });
+            eprintln!("Doubao client was not initialized: missing Doubao API key. Please set DOUBAO_API_KEY in environment, or configure api_keys.doubao_api_key in configs/model_config.yaml.");
+            return vec!["Error".to_string(); candidate_num];
         }
     };
 
@@ -701,9 +721,7 @@ pub async fn call_doubao_with_retry_async(
         {
             Ok(resp) => {
                 if let Ok(resp_json) = resp.json::<Value>().await {
-                    if let Some(content) =
-                        resp_json["choices"][0]["message"]["content"].as_str()
-                    {
+                    if let Some(content) = resp_json["choices"][0]["message"]["content"].as_str() {
                         response_text_list.push(content.to_string());
                         break;
                     }
@@ -716,7 +734,9 @@ pub async fn call_doubao_with_retry_async(
                 let current_delay = std::cmp::min(retry_delay * 2u64.pow(attempt as u32), 30);
                 eprintln!(
                     "Validation attempt {} failed{}: Retrying in {} seconds...",
-                    attempt + 1, context_msg, current_delay
+                    attempt + 1,
+                    context_msg,
+                    current_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(current_delay)).await;
@@ -731,7 +751,10 @@ pub async fn call_doubao_with_retry_async(
                 let current_delay = std::cmp::min(retry_delay * 2u64.pow(attempt as u32), 30);
                 eprintln!(
                     "Validation attempt {} failed{}: {}. Retrying in {} seconds...",
-                    attempt + 1, context_msg, e, current_delay
+                    attempt + 1,
+                    context_msg,
+                    e,
+                    current_delay
                 );
                 if attempt < max_attempts - 1 {
                     tokio::time::sleep(Duration::from_secs(current_delay)).await;
@@ -960,6 +983,7 @@ pub async fn call_doubao_image_generation_with_retry_async(
 }
 
 /// Unified text generation dispatcher that routes to the correct provider
+#[allow(clippy::too_many_arguments)]
 pub async fn call_text_model_with_retry_async(
     clients: &ApiClients,
     model_name: &str,
