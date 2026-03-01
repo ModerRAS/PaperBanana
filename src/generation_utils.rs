@@ -14,12 +14,10 @@
 
 //! Utility functions for interacting with Gemini, Claude, OpenAI, and Doubao APIs.
 
-use anyhow::{Context, Result};
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::config::{self, ModelConfigFile};
@@ -1046,6 +1044,7 @@ pub async fn call_text_model_with_retry_async(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::Engine;
 
     // ======================== Format Converter Tests ========================
 
@@ -1195,7 +1194,7 @@ mod tests {
 
     #[test]
     fn test_gemini_image_part() {
-        let img_data = BASE64.encode(b"\x89PNG\r\n\x1a\n");
+        let img_data = base64::engine::general_purpose::STANDARD.encode(b"\x89PNG\r\n\x1a\n");
         let contents = vec![ContentItem {
             content_type: "image".to_string(),
             text: None,

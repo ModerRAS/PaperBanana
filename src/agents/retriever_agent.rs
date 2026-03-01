@@ -180,7 +180,7 @@ impl RetrieverAgent {
             .filter_map(|v| v.get("id").and_then(|id| id.as_str()).map(String::from))
             .collect();
 
-        let mut rng = rand::rng();
+        let mut rng = rand::thread_rng();
         ids.shuffle(&mut rng);
         ids.truncate(10);
         Ok(ids)
