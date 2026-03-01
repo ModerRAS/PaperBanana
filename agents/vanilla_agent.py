@@ -156,6 +156,18 @@ class VanillaAgent(BaseAgent):
                 max_attempts=5,
                 retry_delay=30,
             )
+        elif "doubao" in self.model_name and cfg["use_image_generation"]:
+            image_config = {
+                "size": "1024x1024",
+                "response_format": "b64_json",
+            }
+            response_list = await generation_utils.call_doubao_image_generation_with_retry_async(
+                model_name=self.model_name,
+                prompt=prompt_text[:30000],
+                config=image_config,
+                max_attempts=5,
+                retry_delay=30,
+            )
         elif not cfg["use_image_generation"]:
             # Text-only models (e.g., Doubao, Claude, GPT) for code generation tasks
             response_list = await generation_utils.call_text_model_with_retry_async(
