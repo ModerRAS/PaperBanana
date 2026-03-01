@@ -33,71 +33,68 @@ PaperBanana achieves high-quality academic illustration generation by orchestrat
 
 ## Quick Start
 
-### Step1: Clone the Repo
+### Step 1: Clone the Repo
 ```bash
 git clone https://github.com/dwzhu-pku/PaperBanana.git
 cd PaperBanana
 ```
 
-### Step2: Configuration
-PaperBanana supports configuring API keys from a YAML configuration file or via environment variables. 
+### Step 2: Configuration
+PaperBanana supports configuring API keys from a YAML configuration file or via environment variables.
 
-We recommend duplicate the `configs/model_config.template.yaml` file into `configs/model_config.yaml` to externalize all user configurations. This file is ignored by git to keep your api keys and configurations secret. In `model_config.yaml`, remember to fill in the two model names (`defaults.model_name` and `defaults.image_model_name`) and set at least one API key under `api_keys` (e.g. `google_api_key` for Gemini models).
+We recommend duplicating the `configs/model_config.template.yaml` file into `configs/model_config.yaml` to externalize all user configurations. This file is ignored by git to keep your API keys and configurations secret. In `model_config.yaml`, remember to fill in the two model names (`defaults.model_name` and `defaults.image_model_name`) and set at least one API key under `api_keys` (e.g. `google_api_key` for Gemini models).
 
 Note that if you need to generate many candidates simultaneously, you will require an API key that supports high concurrency.
 
-### Step3: Downloading the Dataset
+### Step 3: Downloading the Dataset
 First download [PaperBananaBench](https://huggingface.co/datasets/dwzhu/PaperBananaBench), then place it under the `data` directory (e.g., `data/PaperBananaBench/`). The framework is designed to function gracefully without the dataset by bypassing the Retriever Agent's few-shot learning capability. If interested in the original PDFs, please download them from [PaperBananaDiagramPDFs](https://huggingface.co/datasets/dwzhu/PaperBananaDiagramPDFs).
 
-### Step4: Installing the Environment
-1. We use `uv` to manage Python packages. Please install `uv` following the instructions [here](https://docs.astral.sh/uv/getting-started/installation/).
-
-2. Create and activate a virtual environment
-    ```bash
-    uv venv # This will create a virtual environment in the current directory, under .venv/
-    source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-    ```
-
-3. Install python 3.12
-    ```bash
-    uv python install 3.12
-    ```
-
-4. Install required packages
-    ```bash
-    uv pip install -r requirements.txt
-    ```
+### Step 4: Installing Rust
+PaperBanana is implemented in Rust. Install the Rust toolchain via [rustup](https://rustup.rs/):
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+```
 
 ### Launch PaperBanana
 
-#### Interactive Demo (Streamlit)
-The easiest way to launch PaperBanana is via the interactive Streamlit demo:
+#### Interactive CLI Demo
+Run the interactive demo to generate illustration candidates for a single paper figure:
 ```bash
-streamlit run demo.py
+# Quick start with sample input
+bash scripts/run_demo.sh
+
+# Generate candidates for your own content
+cargo run --release --bin paper_banana_demo -- \
+  --method "Your method section text here..." \
+  --caption "Your figure caption here" \
+  --num-candidates 3 \
+  --exp-mode dev_full
+
+# Refine an existing image
+cargo run --release --bin paper_banana_demo -- refine \
+  --image-path path/to/your/diagram.jpg \
+  --instructions "Make the text larger and improve readability"
 ```
 
-The web interface provides two main workflows:
+**Demo Options:**
+- `--method`: Method section content (Markdown recommended)
+- `--caption`: Figure caption
+- `--task-name`: Task type – `diagram` or `plot` (default: `diagram`)
+- `--exp-mode`: Pipeline mode (see section below)
+- `--retrieval-setting`: Retrieval strategy – `auto`, `manual`, `random`, or `none` (default: `auto`)
+- `--num-candidates`: Number of candidates to generate (default: `1`)
+- `--max-critic-rounds`: Maximum critic refinement rounds (default: `3`)
+- `--output-dir`: Directory to save generated images and results (default: `results/demo`)
 
-**1. Generate Candidates Tab**:
-- Paste your method section content (Markdown recommended) and provide the figure caption.
-- Configure settings (pipeline mode, retrieval setting, number of candidates, aspect ratio, critic rounds).
-- Click "Generate Candidates" and wait for parallel processing.
-- View results in a grid with evolution timelines and download individual images or batch ZIP.
-
-**2. Refine Image Tab**:
-- Upload a generated candidate or any diagram.
-- Describe desired changes or request upscaling.
-- Select resolution (2K/4K) and aspect ratio.
-- Download the refined high-resolution output.
-
-#### Command-Line Interface
-You can also run PaperBanana from the command line:
+#### Batch Command-Line Processing
+Process a full dataset in batch mode:
 ```bash
 # Basic usage with default settings
-python main.py
+bash scripts/run_main.sh
 
 # Advanced usage with custom settings
-python main.py \
+cargo run --release -- \
   --dataset_name "PaperBananaBench" \
   --task_name "diagram" \
   --split_name "test" \
@@ -107,10 +104,10 @@ python main.py \
 
 **Available Options:**
 - `--dataset_name`: Dataset to use (default: `PaperBananaBench`)
-- `--task_name`: Task type - `diagram` or `plot` (default: `diagram`)
+- `--task_name`: Task type – `diagram` or `plot` (default: `diagram`)
 - `--split_name`: Dataset split (default: `test`)
 - `--exp_mode`: Experiment mode (see section below)
-- `--retrieval_setting`: Retrieval strategy - `auto`, `manual`, `random`, or `none` (default: `auto`)
+- `--retrieval_setting`: Retrieval strategy – `auto`, `manual`, `random`, or `none` (default: `auto`)
 
 **Experiment Modes:**
 - `vanilla`: Direct generation without planning or refinement
@@ -121,21 +118,8 @@ python main.py \
 - `demo_planner_critic`: Demo mode (Planner → Visualizer → Critic) without evaluation
 - `demo_full`: Demo mode (full pipeline) without evaluation
 
-### Visualization Tools
-
-View pipeline evolution and intermediate results:
-```bash
-streamlit run visualize/show_pipeline_evolution.py
-```
-View evaluation results:
-```bash
-streamlit run visualize/show_referenced_eval.py
-```
-
 ## Project Structure
 ```
-├── .venv/
-│   └── ...
 ├── data/
 │   └── PaperBananaBench/
 │       ├── diagram/
@@ -144,43 +128,42 @@ streamlit run visualize/show_referenced_eval.py
 │       │   ├── test.json
 │       │   └── ref.json
 │       └── plot/
-├── agents/
-│   ├── __init__.py
-│   ├── base_agent.py
-│   ├── retriever_agent.py
-│   ├── planner_agent.py
-│   ├── stylist_agent.py
-│   ├── visualizer_agent.py
-│   ├── critic_agent.py
-│   ├── vanilla_agent.py
-│   └── polish_agent.py
-├── prompts/
-│   ├── __init__.py
-│   ├── diagram_eval_prompts.py
-│   └── plot_eval_prompts.py
+├── src/
+│   ├── main.rs               # Batch processing entry point
+│   ├── lib.rs                # Library root
+│   ├── config.rs             # Experiment configuration
+│   ├── processor.rs          # Main processing pipeline
+│   ├── generation_utils.rs   # API client utilities (Gemini, Claude, OpenAI, Doubao)
+│   ├── image_utils.rs        # Image processing utilities
+│   ├── eval_toolkits.rs      # Evaluation framework
+│   ├── agents/
+│   │   ├── mod.rs
+│   │   ├── base_agent.rs
+│   │   ├── retriever_agent.rs
+│   │   ├── planner_agent.rs
+│   │   ├── stylist_agent.rs
+│   │   ├── visualizer_agent.rs
+│   │   ├── critic_agent.rs
+│   │   ├── vanilla_agent.rs
+│   │   └── polish_agent.rs
+│   ├── prompts/
+│   │   ├── mod.rs
+│   │   ├── diagram_eval_prompts.rs
+│   │   └── plot_eval_prompts.rs
+│   └── bin/
+│       └── demo.rs           # CLI demo entry point
 ├── style_guides/
-│   ├── generate_category_style_guide.py
-│   └── ...
-├── utils/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── paperviz_processor.py
-│   ├── eval_toolkits.py
-│   ├── generation_utils.py
-│   └── image_utils.py
-├── visualize/
-│   ├── show_pipeline_evolution.py
-│   └── show_referenced_eval.py
+│   ├── neurips2025_diagram_style_guide.md
+│   └── neurips2025_plot_style_guide.md
 ├── scripts/
-│   ├── run_main.sh
-│   ├── run_demo.sh
+│   ├── run_main.sh           # Launch batch processing
+│   └── run_demo.sh           # Launch CLI demo
 ├── configs/
 │   └── model_config.template.yaml
 ├── results/
 │   ├── PaperBananaBench_diagram/
-│   └── parallel_demo/
-├── main.py
-├── demo.py
+│   └── demo/
+├── Cargo.toml
 └── README.md
 ```
 

@@ -1,12 +1,6 @@
 configs/model_config.yaml
-__pycache__/
-*.pyc
-__pycache__/
-.venv/
 data/
 results/
-.pytest_cache/
 
 # Rust build artifacts
 /target
-Cargo.lock
