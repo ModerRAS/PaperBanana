@@ -5,6 +5,14 @@ edition = "2021"
 description = "Reference-driven multi-agent framework for automated academic illustration generation"
 license = "Apache-2.0"
 
+[[bin]]
+name = "paper_banana"
+path = "src/main.rs"
+
+[[bin]]
+name = "paper_banana_demo"
+path = "src/bin/demo.rs"
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }

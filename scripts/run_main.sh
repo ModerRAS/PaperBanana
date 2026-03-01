@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,5 +14,5 @@
 # limitations under the License.
 
 # Run Main Script
-echo "Running main.py..."
-python main.py --exp_mode "dev_full" --split_name "test" --task_name "diagram" --retrieval_setting "auto" --max_critic_rounds 3
+echo "Running paper_banana..."
+cargo run --release -- --exp_mode "dev_full" --split_name "test" --task_name "diagram" --retrieval_setting "auto" --max_critic_rounds 3
