@@ -29,3 +29,5 @@ api_keys:
 # Doubao (豆包) Configuration
 doubao:
   base_url: "https://ark.cn-beijing.volces.com/api/v3" # Volcengine Ark API endpoint
+  # Text-to-Image model (e.g., "doubao-seedream-3-0-t2i-250415")
+  image_model_name: ""

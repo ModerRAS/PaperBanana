@@ -24,12 +24,14 @@ from functools import partial
 from ast import literal_eval
 from typing import List, Dict, Any
 
+
 import aiofiles
 from PIL import Image
 from google import genai
 from google.genai import types
 from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
+from volcenginesdkarkruntime import AsyncArk
 
 import os
 
@@ -78,8 +80,8 @@ else:
 doubao_api_key = get_config_val("api_keys", "doubao_api_key", "DOUBAO_API_KEY", "")
 doubao_base_url = get_config_val("doubao", "base_url", "DOUBAO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
 if doubao_api_key:
-    doubao_client = AsyncOpenAI(api_key=doubao_api_key, base_url=doubao_base_url)
-    print("Initialized Doubao Client with API Key")
+    doubao_client = AsyncArk(api_key=doubao_api_key, base_url=doubao_base_url)
+    print("Initialized Doubao Client with API Key (Volcengine Ark SDK)")
 else:
     print("Warning: Could not initialize Doubao Client. Missing credentials.")
     doubao_client = None
@@ -416,7 +418,7 @@ async def call_doubao_with_retry_async(
 ):
     """
     ASYNC: Call Doubao (豆包) API with asynchronous retry logic.
-    Doubao uses an OpenAI-compatible API via the Volcengine Ark platform.
+    Uses the native Volcengine Ark SDK (AsyncArk) which is OpenAI-compatible.
     """
     if doubao_client is None:
         raise RuntimeError(
@@ -530,13 +532,16 @@ async def call_openai_image_generation_with_retry_async(
             response = await openai_client.images.generate(**gen_params)
             
             # OpenAI images.generate returns a list of images in response.data
-            if response.data and response.data[0].b64_json:
-                return [response.data[0].b64_json]
-            else:
-                print(f"[Warning]: Failed to generate image via OpenAI, no data returned.")
-                if attempt < max_attempts - 1:
-                    await asyncio.sleep(retry_delay)
-                continue
+            if response.data:
+                img = response.data[0]
+                if img.b64_json:
+                    return [img.b64_json]
+                elif img.url:
+                    return [img.url]
+            print(f"[Warning]: Failed to generate image via OpenAI, no data returned.")
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(retry_delay)
+            continue
 
         except Exception as e:
             context_msg = f" for {error_context}" if error_context else ""
@@ -546,6 +551,65 @@ async def call_openai_image_generation_with_retry_async(
 
             if attempt < max_attempts - 1:
                 await asyncio.sleep(retry_delay)
+            else:
+                print(f"Error: All {max_attempts} attempts failed{context_msg}")
+                return ["Error"]
+
+    return ["Error"]
+
+
+async def call_doubao_image_generation_with_retry_async(
+    model_name, prompt, config, max_attempts=5, retry_delay=30, error_context=""
+):
+    """
+    ASYNC: Call Doubao (豆包) Image Generation API with asynchronous retry logic.
+    Uses the native Volcengine Ark SDK (AsyncArk) for direct parameter support.
+    The endpoint is at {base_url}/images/generations.
+    """
+    if doubao_client is None:
+        raise RuntimeError(
+            "Doubao client was not initialized: missing Doubao API key. "
+            "Please set DOUBAO_API_KEY in environment, or configure api_keys.doubao_api_key in configs/model_config.yaml."
+        )
+
+    size = config.get("size", "1024x1024")
+    guidance_scale = config.get("guidance_scale", 2.5)
+    watermark = config.get("watermark", False)
+    response_format = config.get("response_format", "b64_json")
+
+    gen_params = {
+        "model": model_name,
+        "prompt": prompt,
+        "size": size,
+        "response_format": response_format,
+        "guidance_scale": guidance_scale,
+        "watermark": watermark,
+    }
+
+    for attempt in range(max_attempts):
+        try:
+            response = await doubao_client.images.generate(**gen_params)
+
+            if response.data:
+                img = response.data[0]
+                if img.b64_json:
+                    return [img.b64_json]
+                elif img.url:
+                    return [img.url]
+            print(f"[Warning]: Failed to generate image via Doubao, no data returned.")
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(retry_delay)
+            continue
+
+        except Exception as e:
+            context_msg = f" for {error_context}" if error_context else ""
+            current_delay = min(retry_delay * (2 ** attempt), 60)
+            print(
+                f"Attempt {attempt + 1} for Doubao image generation model {model_name} failed{context_msg}: {e}. Retrying in {current_delay} seconds..."
+            )
+
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(current_delay)
             else:
                 print(f"Error: All {max_attempts} attempts failed{context_msg}")
                 return ["Error"]
