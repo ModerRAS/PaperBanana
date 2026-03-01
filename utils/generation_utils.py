@@ -618,4 +618,4 @@ async def call_text_model_with_retry_async(
             error_context=error_context,
         )
     else:
-        raise ValueError(f"Unsupported text model: {model_name}. Model name must contain 'gemini', 'doubao', 'claude', or 'gpt'.")
+        raise ValueError(f"Unsupported text model: {model_name}. Model name must contain 'gemini', 'doubao', 'claude', 'gpt', 'o1', 'o3', or 'o4'.")
