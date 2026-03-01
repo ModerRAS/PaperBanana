@@ -623,7 +623,6 @@ async def call_doubao_video_generation_with_retry_async(
     ASYNC: Call Doubao (豆包) Video Generation API with asynchronous retry logic.
     Uses the Volcengine Ark content generation API at {base_url}/contents/generations/tasks.
     This is an async task-based API: create a task, then poll for results.
-    
     Returns a list containing the video URL on success, or ["Error"] on failure.
     """
     if not doubao_api_key:
@@ -635,7 +634,7 @@ async def call_doubao_video_generation_with_retry_async(
     base_url = doubao_base_url.rstrip("/")
     create_url = f"{base_url}/contents/generations/tasks"
     poll_interval = config.get("poll_interval", 5)
-    max_poll_time = config.get("max_poll_time", 300)  # 5 minutes max polling
+    max_poll_time = config.get("max_poll_time", 300)  # default 5 minutes, overridable via config
 
     content_items = [{"type": "text", "text": prompt}]
 
@@ -685,12 +684,12 @@ async def call_doubao_video_generation_with_retry_async(
                         content_list = result_data.get("content", [])
                         for item in content_list:
                             if item.get("type") == "video_url":
-                                video_url = item.get("video_url", "")
-                                if isinstance(video_url, dict):
-                                    video_url = video_url.get("url", "")
-                                if video_url:
-                                    print(f"Video generation succeeded: {video_url}")
-                                    return [video_url]
+                                url_value = item.get("video_url", "")
+                                if isinstance(url_value, dict):
+                                    url_value = url_value.get("url", "")
+                                if url_value:
+                                    print(f"Video generation succeeded: {url_value}")
+                                    return [url_value]
                         print(f"[Warning]: Video task succeeded but no video URL found in response.")
                         return ["Error"]
 
