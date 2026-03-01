@@ -251,8 +251,8 @@ class TestDoubaoImageGenerationRetryAsync:
             assert call_kwargs["response_format"] == "b64_json"  # default
 
     @pytest.mark.asyncio
-    async def test_extra_body_guidance_params(self):
-        """Should pass guidance_scale and watermark via extra_body."""
+    async def test_guidance_params_as_direct_params(self):
+        """Should pass guidance_scale and watermark as direct params (native SDK)."""
         mock_img_data = MagicMock()
         mock_img_data.b64_json = "data"
         mock_response = MagicMock()
@@ -269,9 +269,8 @@ class TestDoubaoImageGenerationRetryAsync:
                 max_attempts=1,
             )
             call_kwargs = mock_client.images.generate.call_args[1]
-            assert "extra_body" in call_kwargs
-            assert call_kwargs["extra_body"]["guidance_scale"] == 3.0
-            assert call_kwargs["extra_body"]["watermark"] is True
+            assert call_kwargs.get("guidance_scale") == 3.0
+            assert call_kwargs.get("watermark") is True
 
     @pytest.mark.asyncio
     async def test_no_data_retries(self):

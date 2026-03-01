@@ -31,6 +31,7 @@ from google import genai
 from google.genai import types
 from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
+from volcenginesdkarkruntime import AsyncArk
 
 import os
 
@@ -79,8 +80,8 @@ else:
 doubao_api_key = get_config_val("api_keys", "doubao_api_key", "DOUBAO_API_KEY", "")
 doubao_base_url = get_config_val("doubao", "base_url", "DOUBAO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
 if doubao_api_key:
-    doubao_client = AsyncOpenAI(api_key=doubao_api_key, base_url=doubao_base_url)
-    print("Initialized Doubao Client with API Key")
+    doubao_client = AsyncArk(api_key=doubao_api_key, base_url=doubao_base_url)
+    print("Initialized Doubao Client with API Key (Volcengine Ark SDK)")
 else:
     print("Warning: Could not initialize Doubao Client. Missing credentials.")
     doubao_client = None
@@ -417,7 +418,7 @@ async def call_doubao_with_retry_async(
 ):
     """
     ASYNC: Call Doubao (豆包) API with asynchronous retry logic.
-    Doubao uses an OpenAI-compatible API via the Volcengine Ark platform.
+    Uses the native Volcengine Ark SDK (AsyncArk) which is OpenAI-compatible.
     """
     if doubao_client is None:
         raise RuntimeError(
@@ -562,7 +563,7 @@ async def call_doubao_image_generation_with_retry_async(
 ):
     """
     ASYNC: Call Doubao (豆包) Image Generation API with asynchronous retry logic.
-    Doubao uses an OpenAI-compatible API via the Volcengine Ark platform.
+    Uses the native Volcengine Ark SDK (AsyncArk) for direct parameter support.
     The endpoint is at {base_url}/images/generations.
     """
     if doubao_client is None:
@@ -579,16 +580,11 @@ async def call_doubao_image_generation_with_retry_async(
     gen_params = {
         "model": model_name,
         "prompt": prompt,
-        "n": 1,
         "size": size,
         "response_format": response_format,
+        "guidance_scale": guidance_scale,
+        "watermark": watermark,
     }
-    # Add Doubao-specific parameters if supported
-    if guidance_scale is not None:
-        gen_params["extra_body"] = {
-            "guidance_scale": guidance_scale,
-            "watermark": watermark,
-        }
 
     for attempt in range(max_attempts):
         try:

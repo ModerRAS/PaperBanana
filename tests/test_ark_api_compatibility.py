@@ -209,10 +209,11 @@ class TestDoubaoImageApiCompatibility:
         self.mock_response.data = [self.mock_img_data]
 
     @pytest.mark.asyncio
-    async def test_ark_image_uses_n_not_count(self):
+    async def test_ark_native_sdk_no_n_param(self):
         """
-        Ark images API (OpenAI-compatible) uses 'n' for number of images,
-        not 'count' or 'max_images'.
+        Volcengine SDK images.generate() does NOT have an 'n' parameter
+        (verified from volcenginesdkarkruntime source). Since we now use the
+        native SDK, 'n' should NOT be in the call params.
         """
         mock_client = AsyncMock()
         mock_client.images.generate = AsyncMock(return_value=self.mock_response)
@@ -225,15 +226,15 @@ class TestDoubaoImageApiCompatibility:
                 max_attempts=1,
             )
         call_kwargs = mock_client.images.generate.call_args[1]
-        assert "n" in call_kwargs
-        assert call_kwargs["n"] == 1
+        # Native Volcengine SDK does not use 'n' parameter
+        assert "n" not in call_kwargs
 
     @pytest.mark.asyncio
-    async def test_ark_image_guidance_scale_via_extra_body(self):
+    async def test_ark_image_guidance_scale_as_direct_param(self):
         """
-        Ark API has guidance_scale as a top-level param. When using OpenAI SDK,
-        non-standard params must go through extra_body to appear at top level
-        in the HTTP request body.
+        With native Volcengine SDK, guidance_scale should be a direct parameter
+        (not via extra_body). Verified from volcenginesdkarkruntime source:
+        images.generate(..., guidance_scale=float, watermark=bool)
         """
         mock_client = AsyncMock()
         mock_client.images.generate = AsyncMock(return_value=self.mock_response)
@@ -246,11 +247,9 @@ class TestDoubaoImageApiCompatibility:
                 max_attempts=1,
             )
         call_kwargs = mock_client.images.generate.call_args[1]
-        # extra_body is the OpenAI SDK mechanism to pass non-standard params
-        # as top-level body params in the HTTP request
-        assert "extra_body" in call_kwargs
-        assert call_kwargs["extra_body"]["guidance_scale"] == 3.0
-        assert call_kwargs["extra_body"]["watermark"] is False
+        # Native SDK: guidance_scale is a direct parameter
+        assert call_kwargs.get("guidance_scale") == 3.0
+        assert call_kwargs.get("watermark") is False
 
     @pytest.mark.asyncio
     async def test_ark_image_response_format_b64_json(self):
@@ -314,7 +313,7 @@ class TestDoubaoImageApiCompatibility:
                 max_attempts=1,
             )
         call_kwargs = mock_client.images.generate.call_args[1]
-        assert call_kwargs["extra_body"]["guidance_scale"] == 2.5
+        assert call_kwargs.get("guidance_scale") == 2.5
 
     @pytest.mark.asyncio
     async def test_ark_image_response_format_url_returns_url(self):
@@ -344,12 +343,10 @@ class TestDoubaoImageApiCompatibility:
         assert result == ["https://ark-output.example.com/img123.png"]
 
     @pytest.mark.asyncio
-    async def test_ark_image_no_n_in_volcengine_sdk(self):
+    async def test_ark_native_sdk_no_n_param_in_image_gen(self):
         """
-        Volcengine SDK images.generate() does NOT have an 'n' parameter
-        (verified from volcenginesdkarkruntime source). When using OpenAI SDK,
-        'n' is passed in the body. The Ark server accepts it for compatibility.
-        Verify we pass n=1 (single image generation).
+        Volcengine SDK images.generate() does NOT have an 'n' parameter.
+        Since we use the native SDK, verify 'n' is not passed.
         """
         mock_client = AsyncMock()
         mock_client.images.generate = AsyncMock(return_value=self.mock_response)
@@ -362,8 +359,7 @@ class TestDoubaoImageApiCompatibility:
                 max_attempts=1,
             )
         call_kwargs = mock_client.images.generate.call_args[1]
-        # We pass n=1 via OpenAI SDK which serializes it into the body
-        assert call_kwargs.get("n") == 1
+        assert "n" not in call_kwargs
 
 
 class TestDoubaoLLMSdkCompatibility:
