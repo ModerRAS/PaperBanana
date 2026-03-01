@@ -156,6 +156,18 @@ class VanillaAgent(BaseAgent):
                 max_attempts=5,
                 retry_delay=30,
             )
+        elif not cfg["use_image_generation"]:
+            # Text-only models (e.g., Doubao, Claude, GPT) for code generation tasks
+            response_list = await generation_utils.call_text_model_with_retry_async(
+                model_name=self.model_name,
+                contents=content_list,
+                system_prompt=self.system_prompt,
+                temperature=self.exp_config.temperature,
+                candidate_num=1,
+                max_output_tokens=50000,
+                max_attempts=5,
+                retry_delay=30,
+            )
         else:
             raise ValueError(f"Unsupported model: {self.model_name}")
         
