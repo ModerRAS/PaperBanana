@@ -1,0 +1,29 @@
+[package]
+name = "paper_banana"
+version = "0.1.0"
+edition = "2021"
+description = "Reference-driven multi-agent framework for automated academic illustration generation"
+license = "Apache-2.0"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+base64 = "0.22"
+image = "0.25"
+clap = { version = "4", features = ["derive"] }
+async-trait = "0.1"
+anyhow = "1"
+thiserror = "2"
+rand = "0.8"
+chrono = "0.4"
+futures = "0.3"
+indicatif = "0.17"
+regex = "1"
+dotenvy = "0.15"
+
+[dev-dependencies]
+mockall = "0.13"
+tempfile = "3"
