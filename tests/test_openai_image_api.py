@@ -75,6 +75,7 @@ class TestOpenAIImageGenerationRetryAsync:
     async def test_no_b64_data_retries(self):
         mock_img_empty = MagicMock()
         mock_img_empty.b64_json = None
+        mock_img_empty.url = None
         mock_response_empty = MagicMock()
         mock_response_empty.data = [mock_img_empty]
 

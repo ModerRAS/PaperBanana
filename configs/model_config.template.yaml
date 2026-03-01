@@ -31,5 +31,3 @@ doubao:
   base_url: "https://ark.cn-beijing.volces.com/api/v3" # Volcengine Ark API endpoint
   # Text-to-Image model (e.g., "doubao-seedream-3-0-t2i-250415")
   image_model_name: ""
-  # Text-to-Video model (e.g., "doubao-seedance-1-0-pro-250528")
-  video_model_name: ""

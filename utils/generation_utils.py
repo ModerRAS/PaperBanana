@@ -24,7 +24,6 @@ from functools import partial
 from ast import literal_eval
 from typing import List, Dict, Any
 
-import httpx
 
 import aiofiles
 from PIL import Image
@@ -532,13 +531,16 @@ async def call_openai_image_generation_with_retry_async(
             response = await openai_client.images.generate(**gen_params)
             
             # OpenAI images.generate returns a list of images in response.data
-            if response.data and response.data[0].b64_json:
-                return [response.data[0].b64_json]
-            else:
-                print(f"[Warning]: Failed to generate image via OpenAI, no data returned.")
-                if attempt < max_attempts - 1:
-                    await asyncio.sleep(retry_delay)
-                continue
+            if response.data:
+                img = response.data[0]
+                if img.b64_json:
+                    return [img.b64_json]
+                elif img.url:
+                    return [img.url]
+            print(f"[Warning]: Failed to generate image via OpenAI, no data returned.")
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(retry_delay)
+            continue
 
         except Exception as e:
             context_msg = f" for {error_context}" if error_context else ""
@@ -592,123 +594,22 @@ async def call_doubao_image_generation_with_retry_async(
         try:
             response = await doubao_client.images.generate(**gen_params)
 
-            if response.data and response.data[0].b64_json:
-                return [response.data[0].b64_json]
-            else:
-                print(f"[Warning]: Failed to generate image via Doubao, no data returned.")
-                if attempt < max_attempts - 1:
-                    await asyncio.sleep(retry_delay)
-                continue
+            if response.data:
+                img = response.data[0]
+                if img.b64_json:
+                    return [img.b64_json]
+                elif img.url:
+                    return [img.url]
+            print(f"[Warning]: Failed to generate image via Doubao, no data returned.")
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(retry_delay)
+            continue
 
         except Exception as e:
             context_msg = f" for {error_context}" if error_context else ""
             current_delay = min(retry_delay * (2 ** attempt), 60)
             print(
                 f"Attempt {attempt + 1} for Doubao image generation model {model_name} failed{context_msg}: {e}. Retrying in {current_delay} seconds..."
-            )
-
-            if attempt < max_attempts - 1:
-                await asyncio.sleep(current_delay)
-            else:
-                print(f"Error: All {max_attempts} attempts failed{context_msg}")
-                return ["Error"]
-
-    return ["Error"]
-
-
-async def call_doubao_video_generation_with_retry_async(
-    model_name, prompt, config, max_attempts=5, retry_delay=30, error_context=""
-):
-    """
-    ASYNC: Call Doubao (豆包) Video Generation API with asynchronous retry logic.
-    Uses the Volcengine Ark content generation API at {base_url}/contents/generations/tasks.
-    This is an async task-based API: create a task, then poll for results.
-    Returns a list containing the video URL on success, or ["Error"] on failure.
-    """
-    if not doubao_api_key:
-        raise RuntimeError(
-            "Doubao client was not initialized: missing Doubao API key. "
-            "Please set DOUBAO_API_KEY in environment, or configure api_keys.doubao_api_key in configs/model_config.yaml."
-        )
-
-    base_url = doubao_base_url.rstrip("/")
-    create_url = f"{base_url}/contents/generations/tasks"
-    poll_interval = config.get("poll_interval", 5)
-    max_poll_time = config.get("max_poll_time", 300)  # default 5 minutes, overridable via config
-
-    content_items = [{"type": "text", "text": prompt}]
-
-    payload = {
-        "model": model_name,
-        "content": content_items,
-    }
-
-    headers = {
-        "Authorization": f"Bearer {doubao_api_key}",
-        "Content-Type": "application/json",
-    }
-
-    for attempt in range(max_attempts):
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                # Step 1: Create the video generation task
-                create_response = await client.post(
-                    create_url, json=payload, headers=headers
-                )
-                create_response.raise_for_status()
-                task_data = create_response.json()
-                task_id = task_data.get("id")
-
-                if not task_id:
-                    print(f"[Warning]: Failed to create video generation task, no task ID returned.")
-                    if attempt < max_attempts - 1:
-                        await asyncio.sleep(retry_delay)
-                    continue
-
-                print(f"Video generation task created: {task_id}")
-
-                # Step 2: Poll for task completion
-                poll_url = f"{create_url}/{task_id}"
-                elapsed = 0
-                while elapsed < max_poll_time:
-                    await asyncio.sleep(poll_interval)
-                    elapsed += poll_interval
-
-                    poll_response = await client.get(poll_url, headers=headers)
-                    poll_response.raise_for_status()
-                    result_data = poll_response.json()
-                    status = result_data.get("status", "")
-
-                    if status == "succeeded":
-                        # Extract video URL from response content
-                        content_list = result_data.get("content", [])
-                        for item in content_list:
-                            if item.get("type") == "video_url":
-                                url_value = item.get("video_url", "")
-                                if isinstance(url_value, dict):
-                                    url_value = url_value.get("url", "")
-                                if url_value:
-                                    print(f"Video generation succeeded: {url_value}")
-                                    return [url_value]
-                        print(f"[Warning]: Video task succeeded but no video URL found in response.")
-                        return ["Error"]
-
-                    elif status == "failed":
-                        error_info = result_data.get("error", "Unknown error")
-                        print(f"Video generation task failed: {error_info}")
-                        break
-
-                    else:
-                        print(f"Video generation status: {status} (elapsed: {elapsed}s)")
-
-                if elapsed >= max_poll_time:
-                    print(f"Video generation task timed out after {max_poll_time}s")
-
-        except Exception as e:
-            context_msg = f" for {error_context}" if error_context else ""
-            current_delay = min(retry_delay * (2 ** attempt), 60)
-            print(
-                f"Attempt {attempt + 1} for Doubao video generation model {model_name} failed{context_msg}: {e}. Retrying in {current_delay} seconds..."
             )
 
             if attempt < max_attempts - 1:
